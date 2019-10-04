@@ -17,51 +17,66 @@
 package SpringBoot
 
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
-type SpringBootApplication struct {
-	AppContext     SpringApplicationContext
-	ConfigLocation string
-	ConfigParsers  []ConfigParser
+//
+// 应用运行过程中产生的事件
+//
+type ApplicationEvent interface {
+	// 应用启动的事件
+	OnStartApplication(ctx ApplicationContext)
+
+	// 应用停止的事件
+	OnStopApplication(ctx ApplicationContext)
 }
 
-func NewSpringBootApplication(configLocation string) *SpringBootApplication {
-	return &SpringBootApplication{
-		AppContext:     NewSpringApplicationContext(),
+//
+// 定义 SpringBoot 应用
+//
+type Application struct {
+	AppContext     ApplicationContext // 应用上下文
+	ConfigLocation string             // 配置文件目录
+	ConfigParsers  []ConfigParser     // 配置文件解析器
+}
+
+//
+// 工厂函数
+//
+func NewApplication(configLocation string) *Application {
+	return &Application{
+		AppContext:     NewDefaultApplicationContext(),
 		ConfigLocation: configLocation,
-		ConfigParsers: []ConfigParser{
-			new(ConfigParserProperties),
-			new(ConfigParserYaml),
-			new(ConfigParserToml),
-		},
+		ConfigParsers:  []ConfigParser{new(ConfigParserViper)},
 	}
 }
 
 //
-// 启动 Spring 服务器
+// 启动 SpringBoot 应用
 //
-func (app *SpringBootApplication) Start() {
+func (app *Application) Start() {
 
+	// 加载配置文件
 	if err := app.loadConfigFiles(); err != nil {
 		panic(err)
 	}
 
+	// 注册 ApplicationContext Bean 对象
 	app.AppContext.RegisterBean(app.AppContext)
 
-	// 初始化各个模块
-	for _, fn := range ModuleFuncs {
+	// 初始化所有的 SpringBoot 模块
+	for _, fn := range Modules {
 		fn(app.AppContext)
 	}
 
-	// 检查 Bean 的自动绑定
+	// 依赖注入
 	if err := app.AppContext.AutoWireBeans(); err != nil {
 		panic(err)
 	}
 
 	// 通知应用启动事件
-	var eventBeans []SpringApplicationEvent
+	var eventBeans []ApplicationEvent
 	app.AppContext.FindBeansByType(&eventBeans)
 
 	if eventBeans != nil && len(eventBeans) > 0 {
@@ -71,11 +86,12 @@ func (app *SpringBootApplication) Start() {
 	}
 }
 
-func (app *SpringBootApplication) loadConfigFiles0(filePath string) error {
+func (app *Application) loadConfigFiles0(filePath string) error {
 	for _, parser := range app.ConfigParsers {
 		for _, ext := range parser.FileExt() {
 			err := parser.Parse(app.AppContext, filePath+ext)
 			if err != nil {
+				// 忽略文件不存在的错误
 				if _, ok := err.(*os.PathError); !ok {
 					return err
 				}
@@ -85,17 +101,18 @@ func (app *SpringBootApplication) loadConfigFiles0(filePath string) error {
 	return nil
 }
 
-func (app *SpringBootApplication) loadConfigFiles() error {
+//
+// 加载应用配置文件
+//
+func (app *Application) loadConfigFiles() error {
 
-	// 加载默认的应用配置文件
-
+	// 加载默认的应用配置文件，如 application.properties
 	filePath := app.ConfigLocation + "application"
 	if err := app.loadConfigFiles0(filePath); err != nil {
 		return err
 	}
 
-	// 加载用户设置的配置文件
-
+	// 加载用户设置的配置文件，如 application-test.properties
 	if env := os.Getenv("spring.profile"); len(env) > 0 {
 		filePath = fmt.Sprintf(app.ConfigLocation+"application-%s", env)
 		if err := app.loadConfigFiles0(filePath); err != nil {
@@ -106,10 +123,13 @@ func (app *SpringBootApplication) loadConfigFiles() error {
 	return nil
 }
 
-func (app *SpringBootApplication) ShutDown() {
+//
+// 停止 SpringBoot 应用
+//
+func (app *Application) ShutDown() {
 
-	// 通知应用启动事件
-	var eventBeans []SpringApplicationEvent
+	// 通知应用停止事件
+	var eventBeans []ApplicationEvent
 	app.AppContext.FindBeansByType(&eventBeans)
 
 	if eventBeans != nil && len(eventBeans) > 0 {
@@ -118,6 +138,8 @@ func (app *SpringBootApplication) ShutDown() {
 		}
 	}
 
+	// 等待所有 goroutine 退出
 	app.AppContext.Wait()
-	fmt.Println("spring exit")
+
+	fmt.Println("spring boot exit")
 }

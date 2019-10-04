@@ -16,21 +16,24 @@
 
 package SpringBoot
 
-import "github.com/didi/go-spring/spring-core"
+import (
+	"fmt"
+	"testing"
+)
 
-//
-// 定义 SpringBoot 模块初始化函数，未来可能成为接口
-//
-type ModuleFunc func(SpringCore.SpringContext)
+func TestRange(t *testing.T) {
 
-//
-// 定义 SpringBoot 模块数组
-//
-var Modules = make([]ModuleFunc, 0)
+	i := 0
 
-//
-// 注册 SpringBoot 模块
-//
-func RegisterModule(fn ModuleFunc) {
-	Modules = append(Modules, fn)
+	f := func() []int {
+		i++
+		return []int{5, 6, 7, 8}
+	}
+
+	// range 用法中的 f() 只调用一次
+	for _, v := range f() {
+		fmt.Println(v)
+	}
+
+	fmt.Println(i)
 }

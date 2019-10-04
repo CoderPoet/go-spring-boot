@@ -16,7 +16,43 @@
 
 package SpringBoot
 
+import (
+	"github.com/spf13/viper"
+)
+
+//
+// 配置文件解析器
+//
 type ConfigParser interface {
+	// 文件扩展名
 	FileExt() []string
-	Parse(ctx SpringApplicationContext, path string) error
+
+	// 解析配置文件
+	Parse(ctx ApplicationContext, filename string) error
+}
+
+//
+// 使用 spf13/viper 实现的解析器
+//
+type ConfigParserViper struct {
+}
+
+//
+// 文件扩展名
+//
+func (_ *ConfigParserViper) FileExt() []string {
+	return []string{".properties", ".yaml", ".toml"}
+}
+
+//
+// 解析配置文件
+//
+func (parser *ConfigParserViper) Parse(ctx ApplicationContext, filename string) error {
+	v := viper.New()
+	v.SetConfigFile(filename)
+	for _, key := range v.AllKeys() {
+		val := v.Get(key)
+		ctx.SetProperties(key, val)
+	}
+	return nil
 }

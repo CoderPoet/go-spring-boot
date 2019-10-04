@@ -17,48 +17,65 @@
 package SpringBoot
 
 import (
+	"fmt"
 	"sync"
 	"github.com/didi/go-spring/spring-core"
 )
 
-type SpringApplicationContext interface {
+type GoFunc func()
+
+//
+// Application 上下文
+//
+type ApplicationContext interface {
+	// 继承 SpringContext 的功能
 	SpringCore.SpringContext
 
+	// 安全的启动一个 goroutine
+	SafeGoroutine(fn GoFunc)
+
+	// 等待所有 goroutine 退出
 	Wait()
-	SafeGoroutine(f func())
 }
 
-type SpringApplicationEvent interface {
-	OnStartApplication(ctx SpringApplicationContext)
-	OnStopApplication(ctx SpringApplicationContext)
-}
-
-type DefaultSpringApplicationContext struct {
+//
+// ApplicationContext 的默认版本
+//
+type DefaultApplicationContext struct {
 	*SpringCore.DefaultSpringContext
 
 	wg sync.WaitGroup
 }
 
-func NewSpringApplicationContext() *DefaultSpringApplicationContext {
-	return &DefaultSpringApplicationContext{
-		DefaultSpringContext: SpringCore.NewSpringContext(),
+//
+// 工厂函数
+//
+func NewDefaultApplicationContext() *DefaultApplicationContext {
+	return &DefaultApplicationContext{
+		DefaultSpringContext: SpringCore.NewDefaultSpringContext(),
 	}
 }
 
-func (ctx *DefaultSpringApplicationContext) SafeGoroutine(f func()) {
+//
+// 安全的启动一个 goroutine
+//
+func (ctx *DefaultApplicationContext) SafeGoroutine(fn GoFunc) {
 	go func() {
 
 		defer func() {
-
+			fmt.Println(".")
 		}()
 
 		ctx.wg.Add(1)
 		defer ctx.wg.Done()
 
-		f()
+		fn()
 	}()
 }
 
-func (ctx *DefaultSpringApplicationContext) Wait() {
+//
+// 等待所有 goroutine 退出
+//
+func (ctx *DefaultApplicationContext) Wait() {
 	ctx.wg.Wait()
 }
