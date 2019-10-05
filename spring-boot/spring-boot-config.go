@@ -48,8 +48,11 @@ func (_ *ConfigParserViper) FileExt() []string {
 // 解析配置文件
 //
 func (parser *ConfigParserViper) Parse(ctx ApplicationContext, filename string) error {
+
 	v := viper.New()
 	v.SetConfigFile(filename)
+	v.ReadInConfig()
+
 	for _, key := range v.AllKeys() {
 		val := v.Get(key)
 		ctx.SetProperties(key, val)

@@ -19,6 +19,7 @@ package SpringBoot
 import (
 	"fmt"
 	"os"
+	"github.com/go-spring/app-starter"
 )
 
 //
@@ -50,6 +51,13 @@ func NewApplication(configLocation string) *Application {
 		ConfigLocation: configLocation,
 		ConfigParsers:  []ConfigParser{new(ConfigParserViper)},
 	}
+}
+
+//
+// 启动 SpringBoot 应用对的快捷方式
+//
+func RunApplication(configLocation string) {
+	AppStarter.Run(NewApplication(configLocation))
 }
 
 //
