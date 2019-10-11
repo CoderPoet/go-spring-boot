@@ -16,7 +16,9 @@
 
 package SpringBoot
 
-import "github.com/didi/go-spring/spring-core"
+import (
+	"github.com/go-spring/go-spring/spring-core"
+)
 
 //
 // 定义 SpringBoot 模块初始化函数，未来可能成为接口

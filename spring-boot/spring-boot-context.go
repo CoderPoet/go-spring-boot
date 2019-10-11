@@ -19,7 +19,7 @@ package SpringBoot
 import (
 	"fmt"
 	"sync"
-	"github.com/didi/go-spring/spring-core"
+	"github.com/go-spring/go-spring/spring-core"
 )
 
 type GoFunc func()
